@@ -155,11 +155,39 @@ class RAGPipeline:
         logger.info(f"Built BM25 index with {len(self.chunks)} chunks")
     
     def _tokenize(self, text: str) -> List[str]:
-        """Simple tokenization"""
+        """Simple tokenization with stopword removal"""
+        # Common stopwords to remove from queries
+        STOPWORDS = {
+            'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+            'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+            'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'dare',
+            'ought', 'used', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by',
+            'from', 'as', 'into', 'through', 'during', 'before', 'after',
+            'above', 'below', 'between', 'under', 'again', 'further', 'then',
+            'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all',
+            'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor',
+            'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just',
+            'and', 'but', 'if', 'or', 'because', 'until', 'while', 'although',
+            'though', 'after', 'before', 'when', 'whenever', 'where', 'wherever',
+            'whether', 'which', 'while', 'who', 'whom', 'whose', 'what', 'this',
+            'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'been',
+            'being', 'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves',
+            'you', 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his',
+            'himself', 'she', 'her', 'hers', 'herself', 'it', 'its', 'itself',
+            'they', 'them', 'their', 'theirs', 'themselves', 'about', 'tell',
+            'please', 'help', 'know', 'get', 'find', 'show', 'give', 'let'
+        }
+        
         # Lowercase and split on non-alphanumeric
         text = text.lower()
         tokens = re.findall(r'\b\w+\b', text)
-        return tokens
+        
+        # Remove stopwords (but keep at least one token)
+        filtered = [t for t in tokens if t not in STOPWORDS]
+        
+        # If all tokens were stopwords, return original tokens
+        return filtered if filtered else tokens
+
     
     def search(self, query: str, top_k: int = None) -> List[Tuple[DocumentChunk, float]]:
         """
