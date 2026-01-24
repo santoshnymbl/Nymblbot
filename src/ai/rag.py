@@ -199,7 +199,11 @@ class RAGPipeline:
         total_chars = 0
         
         for chunk, score in results:
-            chunk_text = f"[Source: {chunk.source} | Section: {chunk.section}]\n{chunk.content}"
+            # Format with clear section header
+            chunk_text = f"""### {chunk.section}
+(Source: {chunk.source})
+
+{chunk.content}"""
             
             if total_chars + len(chunk_text) > max_chars:
                 break

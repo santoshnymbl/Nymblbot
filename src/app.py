@@ -132,6 +132,58 @@ async def api_stats():
     return await get_stats()
 
 
+@app.get("/api/debug")
+async def api_debug():
+    """Debug endpoint to check paths and RAG status"""
+    import os
+    from pathlib import Path
+    from src.ai import rag_pipeline
+    from src.config import settings, PROJECT_ROOT
+    
+    # Check paths
+    data_dir = Path(settings.data_dir)
+    
+    # List files in various locations
+    cwd = os.getcwd()
+    
+    # Try to find data files
+    possible_paths = [
+        Path(settings.data_dir),
+        Path("data"),
+        Path("../data"),
+        Path("/app/data"),
+        PROJECT_ROOT / "data",
+    ]
+    
+    found_files = {}
+    for p in possible_paths:
+        try:
+            if p.exists():
+                files = list(p.glob("*"))
+                found_files[str(p)] = [str(f.name) for f in files]
+            else:
+                found_files[str(p)] = "PATH DOES NOT EXIST"
+        except Exception as e:
+            found_files[str(p)] = f"ERROR: {e}"
+    
+    # List root directory
+    root_files = []
+    try:
+        root_files = os.listdir("/app") if os.path.exists("/app") else os.listdir(".")
+    except Exception as e:
+        root_files = [f"ERROR: {e}"]
+    
+    return {
+        "current_working_directory": cwd,
+        "settings_data_dir": settings.data_dir,
+        "project_root": str(PROJECT_ROOT),
+        "rag_loaded": rag_pipeline._loaded,
+        "rag_chunks_count": len(rag_pipeline.chunks),
+        "path_checks": found_files,
+        "root_directory_files": root_files,
+    }
+
+
 @app.get("/api/search")
 async def api_search(q: str, top_k: int = 5):
     """Search the knowledge base (debug)"""
@@ -162,6 +214,24 @@ async def api_ask(question: str, user_name: str = "Test User"):
         "question": question,
         "response": response,
         "latency_ms": latency_ms
+    }
+
+
+@app.get("/api/test-rag")
+async def api_test_rag(q: str):
+    """Test RAG context retrieval - shows exactly what Claude sees"""
+    from src.ai.rag import rag_pipeline
+    
+    # Get context the same way generator does
+    context = rag_pipeline.get_context(q)
+    
+    return {
+        "query": q,
+        "rag_loaded": rag_pipeline._loaded,
+        "chunks_count": len(rag_pipeline.chunks),
+        "context_length": len(context),
+        "context_preview": context[:1000] if context else "EMPTY",
+        "full_context": context
     }
 
 

@@ -57,6 +57,9 @@ class AIGenerator:
             # Get RAG context
             context = rag_pipeline.get_context(query)
             
+            # DEBUG: Log the context being sent
+            logger.info(f"RAG Context for '{query}': {context[:500]}...")
+            
             # Build system prompt with user context
             system = SYSTEM_PROMPT
             if user_name:
@@ -71,7 +74,12 @@ class AIGenerator:
 
 User's question: {query}
 
-Please answer based on the information above. If the information doesn't fully answer the question, say so and provide what help you can."""
+IMPORTANT: The section headers (like "CEO / Co-Founder", "Leave Policy", etc.) indicate what/who the content is about. Use both the headers AND content to answer.
+
+Please answer based on the information above. Be direct and specific - if the answer is in the context, state it clearly."""
+
+            # DEBUG: Log full message length
+            logger.info(f"Full user message length: {len(user_message)} chars")
 
             # Add thread context if available
             messages = []
