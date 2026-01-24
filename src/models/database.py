@@ -4,6 +4,7 @@ SQLite with async support
 """
 import aiosqlite
 import os
+from pathlib import Path
 from datetime import datetime, date
 from typing import Optional, List
 from dataclasses import dataclass
@@ -11,8 +12,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Database path
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "miss_minutes.db")
+# Database path - relative to project root (parent of src/)
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DB_PATH = PROJECT_ROOT / "db" / "miss_minutes.db"
 
 
 @dataclass
@@ -52,9 +54,9 @@ class ReminderLog:
 
 async def init_database():
     """Initialize database with tables"""
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         # User preferences table
         await db.execute("""
             CREATE TABLE IF NOT EXISTS user_preferences (
@@ -108,7 +110,7 @@ async def init_database():
 
 async def get_user(user_id: str) -> Optional[UserPreference]:
     """Get user preferences by ID"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
             "SELECT * FROM user_preferences WHERE user_id = ?",
@@ -131,7 +133,7 @@ async def get_user(user_id: str) -> Optional[UserPreference]:
 
 async def create_user(user: UserPreference) -> UserPreference:
     """Create new user preferences"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         await db.execute("""
             INSERT INTO user_preferences (user_id, user_name, subscribed, timezone, reminder_time, reminder_day)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -149,7 +151,7 @@ async def update_user(user_id: str, **kwargs) -> Optional[UserPreference]:
     set_clause = ", ".join(f"{k} = ?" for k in kwargs.keys())
     values = list(kwargs.values()) + [user_id]
     
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         await db.execute(f"""
             UPDATE user_preferences 
             SET {set_clause}, updated_at = CURRENT_TIMESTAMP
@@ -183,7 +185,7 @@ async def get_or_create_user(user_id: str, user_name: str) -> tuple[UserPreferen
 
 async def get_subscribed_users() -> List[UserPreference]:
     """Get all users subscribed to reminders"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
             "SELECT * FROM user_preferences WHERE subscribed = 1"
@@ -208,7 +210,7 @@ async def get_subscribed_users() -> List[UserPreference]:
 
 async def log_interaction(user_id: str, query: str, response: str, latency_ms: int):
     """Log an interaction"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         await db.execute("""
             INSERT INTO interactions (user_id, query, response, latency_ms)
             VALUES (?, ?, ?, ?)
@@ -218,7 +220,7 @@ async def log_interaction(user_id: str, query: str, response: str, latency_ms: i
 
 async def update_feedback(interaction_id: int, feedback: str):
     """Update feedback for an interaction"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         await db.execute(
             "UPDATE interactions SET feedback = ? WHERE id = ?",
             (feedback, interaction_id)
@@ -232,7 +234,7 @@ async def update_feedback(interaction_id: int, feedback: str):
 
 async def log_reminder_sent(user_id: str) -> int:
     """Log that a reminder was sent"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         cursor = await db.execute("""
             INSERT INTO reminder_log (user_id, sent_at)
             VALUES (?, CURRENT_TIMESTAMP)
@@ -243,7 +245,7 @@ async def log_reminder_sent(user_id: str) -> int:
 
 async def check_reminder_sent_today(user_id: str, user_date: date) -> bool:
     """Check if reminder was already sent to user today (in their timezone)"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         async with db.execute("""
             SELECT COUNT(*) FROM reminder_log 
             WHERE user_id = ? AND DATE(sent_at) = ?
@@ -254,7 +256,7 @@ async def check_reminder_sent_today(user_id: str, user_date: date) -> bool:
 
 async def acknowledge_reminder(user_id: str):
     """Mark most recent reminder as acknowledged"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         await db.execute("""
             UPDATE reminder_log 
             SET acknowledged = 1 
@@ -267,7 +269,7 @@ async def acknowledge_reminder(user_id: str):
 
 async def snooze_reminder(user_id: str, snooze_until: datetime):
     """Snooze the most recent reminder"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         await db.execute("""
             UPDATE reminder_log 
             SET snoozed_until = ? 
@@ -284,7 +286,7 @@ async def snooze_reminder(user_id: str, snooze_until: datetime):
 
 async def get_stats() -> dict:
     """Get bot statistics"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(str(DB_PATH)) as db:
         # Total users
         async with db.execute("SELECT COUNT(*) FROM user_preferences") as cursor:
             total_users = (await cursor.fetchone())[0]

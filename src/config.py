@@ -2,8 +2,12 @@
 Miss Minutes - Configuration
 """
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from typing import Optional
+
+# Get the project root directory (parent of src/)
+PROJECT_ROOT = Path(__file__).parent.parent
 
 
 class Settings(BaseSettings):
@@ -23,11 +27,11 @@ class Settings(BaseSettings):
     port: int = 3000
     debug: bool = False
     
-    # Database
-    database_url: str = "sqlite+aiosqlite:///./db/miss_minutes.db"
+    # Database - use absolute path
+    database_url: str = f"sqlite+aiosqlite:///{PROJECT_ROOT}/db/miss_minutes.db"
     
-    # RAG Configuration
-    data_dir: str = "data"
+    # RAG Configuration - use absolute path
+    data_dir: str = str(PROJECT_ROOT / "data")
     chunk_size: int = 500
     chunk_overlap: int = 50
     bm25_top_k: int = 20
