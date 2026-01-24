@@ -98,8 +98,11 @@ class RAGPipeline:
             if not body:
                 continue
             
-            # If section is too long, split by paragraphs
-            if len(body) > settings.chunk_size:
+            # Use larger chunk size (1500) to keep related content together
+            max_chunk_size = 1500
+            
+            # If section is too long, split by paragraphs BUT keep header context
+            if len(body) > max_chunk_size:
                 paragraphs = body.split("\n\n")
                 current_chunk = ""
                 
@@ -108,12 +111,14 @@ class RAGPipeline:
                     if not para:
                         continue
                     
-                    if len(current_chunk) + len(para) < settings.chunk_size:
+                    if len(current_chunk) + len(para) < max_chunk_size:
                         current_chunk += para + "\n\n"
                     else:
                         if current_chunk.strip():
+                            # Include header context in chunk content for better matching
+                            chunk_content = f"{header}\n\n{current_chunk.strip()}"
                             chunks.append(DocumentChunk(
-                                content=current_chunk.strip(),
+                                content=chunk_content,
                                 source=source,
                                 section=header,
                                 chunk_id=chunk_id
@@ -122,16 +127,19 @@ class RAGPipeline:
                         current_chunk = para + "\n\n"
                 
                 if current_chunk.strip():
+                    chunk_content = f"{header}\n\n{current_chunk.strip()}"
                     chunks.append(DocumentChunk(
-                        content=current_chunk.strip(),
+                        content=chunk_content,
                         source=source,
                         section=header,
                         chunk_id=chunk_id
                     ))
                     chunk_id += 1
             else:
+                # Include header in content for better search matching
+                chunk_content = f"{header}\n\n{body}"
                 chunks.append(DocumentChunk(
-                    content=body,
+                    content=chunk_content,
                     source=source,
                     section=header,
                     chunk_id=chunk_id
