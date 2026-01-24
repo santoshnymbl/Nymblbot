@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
     # =========================================================================
     # STARTUP
     # =========================================================================
-    logger.info("🕐 Miss Minutes starting up...")
+    logger.info("🕐NymblBot starting up...")
     
     # Initialize database
     logger.info("Initializing database...")
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
     reminder_scheduler.initialize(slack_app.client)
     reminder_scheduler.start()
     
-    logger.info("✅ Miss Minutes is ready!")
+    logger.info("✅ NymblBot is ready!")
     logger.info(f"Next scheduler check: {reminder_scheduler.get_next_run()}")
     
     yield
@@ -69,14 +69,14 @@ async def lifespan(app: FastAPI):
     # =========================================================================
     # SHUTDOWN
     # =========================================================================
-    logger.info("🕐 Miss Minutes shutting down...")
+    logger.info("NymblBot shutting down...")
     reminder_scheduler.stop()
     logger.info("Goodbye!")
 
 
 # Create FastAPI app
 app = FastAPI(
-    title="Miss Minutes",
+    title="NymblBot",
     description="Nymbl's AI Assistant - Personal bot for everyone",
     version="2.0.0",
     lifespan=lifespan
@@ -93,7 +93,7 @@ async def root():
     stats = await get_stats()
     return {
         "status": "ok",
-        "bot": "Miss Minutes 🕐",
+        "bot": "NymblBot 🕐",
         "version": "2.0.0",
         "stats": stats,
         "next_scheduler_check": reminder_scheduler.get_next_run()

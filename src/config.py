@@ -1,5 +1,5 @@
 """
-Miss Minutes - Configuration
+NymblBot - Configuration
 """
 import os
 from pathlib import Path
@@ -51,10 +51,10 @@ settings = Settings()
 
 
 # =============================================================================
-# MISS MINUTES PERSONALITY
+# Nymbling PERSONALITY
 # =============================================================================
 
-SYSTEM_PROMPT = """You are Miss Minutes, Nymbl's friendly AI assistant! 🕐
+SYSTEM_PROMPT = """You are a Nymbling, Nymbl's friendly AI assistant! 🕐
 
 ## Your Personality
 - Warm, helpful, and encouraging (embody Nymbl's "Be Empowering" tenet)
@@ -96,7 +96,7 @@ def get_welcome_message(user_name: str) -> dict:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"👋 *Hey {user_name}!* I'm Miss Minutes, Nymbl's AI assistant.\n\nI can help you with:"
+                    "text": f"👋 *Hey {user_name}!* I'm Nymbling, Nymbl's AI assistant.\n\nI can help you with:"
                 }
             },
             {
@@ -158,7 +158,7 @@ def get_reminder_message(user_name: str, mynos_url: str) -> dict:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"⏰ *Hey {user_name}!* Miss Minutes here.\n\nIt's Friday – time to log your hours! Being Reliable means keeping our time tracking accurate. 💪"
+                    "text": f"⏰ *Hey {user_name}!* Nymbling here.\n\nIt's Friday – time to log your hours! Being Reliable means keeping our time tracking accurate. 💪"
                 }
             },
             {
@@ -195,7 +195,7 @@ def get_status_message(user_name: str, subscribed: bool, timezone: str, reminder
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*🕐 Your Miss Minutes Settings*"
+                    "text": f"*🕐 Your Nymbling Settings*"
                 }
             },
             {
@@ -228,7 +228,7 @@ def get_help_message() -> dict:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*🕐 Miss Minutes Help*\n\nHere's what I can do:"
+                    "text": "*🕐 Nymbling Help*\n\nHere's what I can do:"
                 }
             },
             {
@@ -257,7 +257,7 @@ def get_help_message() -> dict:
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": "🕐 Miss Minutes | Nymbl's AI Assistant"
+                        "text": "Nymbling | Nymbl's AI Assistant"
                     }
                 ]
             }

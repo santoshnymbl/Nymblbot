@@ -120,7 +120,7 @@ def create_slack_app() -> AsyncApp:
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "*🕐 Welcome to Miss Minutes!*\n\nI'm Nymbl's AI assistant. Here's what I can help with:"
+                            "text": "*Welcome Nymbling!*\n\nI'm Nymbl's AI assistant. Here's what I can help with:"
                         }
                     },
                     {"type": "divider"},
@@ -142,7 +142,7 @@ def create_slack_app() -> AsyncApp:
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "*How to use:*\n• DM me directly with any question\n• Mention `@Miss Minutes` in any channel\n• Say `help` for all commands"
+                            "text": "*How to use:*\n• DM me directly with any question\n• Mention `@NymblBot` in any channel\n• Say `help` for all commands"
                         }
                     },
                     {"type": "divider"},

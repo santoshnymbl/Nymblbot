@@ -49,7 +49,7 @@ class AIGenerator:
             self.initialize()
         
         if not self.client:
-            return "I'm having trouble connecting right now. Please try again! 🕐", 0
+            return "I'm having trouble connecting right now. Please try again!", 0
         
         start_time = time.time()
         
@@ -120,13 +120,13 @@ ai_generator = AIGenerator()
 
 # Quick responses for common greetings/commands
 QUICK_RESPONSES = {
-    "hello": "Hey there! 👋 I'm Miss Minutes, Nymbl's AI assistant. What can I help you with?",
-    "hi": "Hi! 🕐 I'm Miss Minutes. Ask me anything about Nymbl!",
-    "hey": "Hey! 🕐 What can I help you with today?",
-    "thanks": "You're welcome! Let me know if you need anything else. 🕐",
-    "thank you": "Happy to help! Reach out anytime. 🕐",
-    "bye": "See you later! Don't forget to log your time on Fridays! 🕐",
-    "goodbye": "Goodbye! Remember, I'm here whenever you need help with Nymbl stuff. 🕐"
+    "hello": "Hey there! 👋 I'm Nymbling, Nymbl's AI assistant. What can I help you with?",
+    "hi": "Hi! I'm Nymbling. Ask me anything about Nymbl!",
+    "hey": "Hey!  What can I help you with today?",
+    "thanks": "You're welcome! Let me know if you need anything else. I'm here to help!",
+    "thank you": "Happy to help! Reach out anytime.",
+    "bye": "See you later! Don't forget to log your time on Mondays before 1.30PM EST!",
+    "goodbye": "Goodbye! Remember, I'm here whenever you need help with anything."
 }
 
 
