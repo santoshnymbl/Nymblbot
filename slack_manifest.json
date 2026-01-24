@@ -4,10 +4,10 @@
     "minor_version": 1
   },
   "display_information": {
-    "name": "Miss Minutes",
+    "name": "NymblBot",
     "description": "Nymbl's AI Assistant - Time reminders and knowledge base",
     "background_color": "#4A154B",
-    "long_description": "Miss Minutes is Nymbl's friendly AI assistant. She provides personalized Friday reminders to log your time and answers questions about Nymbl's policies, processes, and people using the company knowledge base.\n\nFeatures:\n• Personalized time logging reminders\n• AI-powered Q&A about Nymbl\n• Customizable reminder times and timezones\n• Works via DM or @mention"
+    "long_description": "Nymbling is Nymbl's friendly AI assistant. She provides personalized Friday reminders to log your time and answers questions about Nymbl's policies, processes, and people using the company knowledge base.\n\nFeatures:\n• Personalized time logging reminders\n• AI-powered Q&A about Nymbl\n• Customizable reminder times and timezones\n• Works via DM or @mention"
   },
   "features": {
     "app_home": {

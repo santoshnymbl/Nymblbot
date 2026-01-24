@@ -1,6 +1,6 @@
 """
 Miss Minutes - RAG Pipeline
-BM25 Retrieval + Cross-Encoder Reranking
+BM25 Retrieval (Lightweight - no heavy ML models)
 """
 import os
 import re
@@ -10,7 +10,6 @@ from typing import List, Tuple, Optional
 from dataclasses import dataclass
 
 from rank_bm25 import BM25Okapi
-from sentence_transformers import CrossEncoder
 
 from src.config import settings
 
@@ -28,16 +27,16 @@ class DocumentChunk:
 
 class RAGPipeline:
     """
-    Production RAG Pipeline
-    - BM25 for fast initial retrieval
-    - Cross-encoder reranking for precision
+    Lightweight RAG Pipeline using BM25
+    - Fast and efficient
+    - No heavy ML models (works on Railway free tier)
+    - Still provides good retrieval quality
     """
     
     def __init__(self, data_dir: str = None):
         self.data_dir = Path(data_dir or settings.data_dir)
         self.chunks: List[DocumentChunk] = []
         self.bm25: Optional[BM25Okapi] = None
-        self.reranker: Optional[CrossEncoder] = None
         self.tokenized_chunks: List[List[str]] = []
         self._loaded = False
     
@@ -47,15 +46,6 @@ class RAGPipeline:
             return
         
         logger.info(f"Loading RAG pipeline from {self.data_dir}")
-        
-        # Load reranker model
-        logger.info("Loading reranker model...")
-        try:
-            self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
-            logger.info("Reranker loaded: cross-encoder/ms-marco-MiniLM-L-6-v2")
-        except Exception as e:
-            logger.warning(f"Could not load reranker: {e}. Falling back to BM25 only.")
-            self.reranker = None
         
         # Load documents
         documents = []
@@ -80,7 +70,7 @@ class RAGPipeline:
         # Build BM25 index
         self._build_bm25_index()
         self._loaded = True
-        logger.info("RAG pipeline ready!")
+        logger.info("RAG pipeline ready (BM25 mode)!")
     
     def _chunk_document(self, source: str, content: str) -> List[DocumentChunk]:
         """Split document into searchable chunks by section"""
@@ -173,9 +163,7 @@ class RAGPipeline:
     
     def search(self, query: str, top_k: int = None) -> List[Tuple[DocumentChunk, float]]:
         """
-        Two-stage retrieval:
-        1. BM25 retrieval (fast, get candidates)
-        2. Reranker (precise, select best)
+        BM25 retrieval - fast and effective
         """
         if not self._loaded:
             self.load()
@@ -185,38 +173,20 @@ class RAGPipeline:
         
         top_k = top_k or settings.rerank_top_k
         
-        # Stage 1: BM25 retrieval
+        # BM25 retrieval
         query_tokens = self._tokenize(query)
         bm25_scores = self.bm25.get_scores(query_tokens)
         
-        # Get top candidates for reranking
-        bm25_top_k = settings.bm25_top_k
-        top_indices = bm25_scores.argsort()[-bm25_top_k:][::-1]
+        # Get top results
+        top_indices = bm25_scores.argsort()[-top_k:][::-1]
         
-        candidates = [(self.chunks[i], bm25_scores[i]) for i in top_indices if bm25_scores[i] > 0]
+        results = [
+            (self.chunks[i], float(bm25_scores[i])) 
+            for i in top_indices 
+            if bm25_scores[i] > 0
+        ]
         
-        if not candidates:
-            return []
-        
-        # Stage 2: Reranking (if available)
-        if self.reranker and len(candidates) > 1:
-            try:
-                pairs = [(query, chunk.content) for chunk, _ in candidates]
-                rerank_scores = self.reranker.predict(pairs)
-                
-                # Combine with rerank scores
-                reranked = sorted(
-                    zip([c for c, _ in candidates], rerank_scores),
-                    key=lambda x: x[1],
-                    reverse=True
-                )
-                
-                return reranked[:top_k]
-            except Exception as e:
-                logger.warning(f"Reranking failed: {e}. Using BM25 scores only.")
-        
-        # Fallback to BM25 scores only
-        return candidates[:top_k]
+        return results
     
     def get_context(self, query: str, max_chars: int = 3000) -> str:
         """Get formatted context string for LLM prompt"""
@@ -251,29 +221,3 @@ def initialize_rag():
         logger.info("RAG pipeline initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize RAG pipeline: {e}")
-
-
-if __name__ == "__main__":
-    # Test the RAG pipeline
-    logging.basicConfig(level=logging.INFO)
-    
-    pipeline = RAGPipeline("data")
-    pipeline.load()
-    
-    test_queries = [
-        "What is WGLL?",
-        "How do I submit PTO?",
-        "Who is the CEO?",
-        "What are Nymbl's tenets?",
-        "How do I log time?"
-    ]
-    
-    for query in test_queries:
-        print(f"\n{'='*60}")
-        print(f"Query: {query}")
-        print("="*60)
-        
-        results = pipeline.search(query, top_k=3)
-        for chunk, score in results:
-            print(f"\n[Score: {score:.3f}] {chunk.section}")
-            print(chunk.content[:200] + "...")
