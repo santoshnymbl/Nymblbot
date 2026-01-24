@@ -1,0 +1,60 @@
+{
+  "_metadata": {
+    "major_version": 2,
+    "minor_version": 1
+  },
+  "display_information": {
+    "name": "Miss Minutes",
+    "description": "Nymbl's AI Assistant - Time reminders and knowledge base",
+    "background_color": "#4A154B",
+    "long_description": "Miss Minutes is Nymbl's friendly AI assistant. She provides personalized Friday reminders to log your time and answers questions about Nymbl's policies, processes, and people using the company knowledge base.\n\nFeatures:\n• Personalized time logging reminders\n• AI-powered Q&A about Nymbl\n• Customizable reminder times and timezones\n• Works via DM or @mention"
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": true,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "display_name": "Miss Minutes",
+      "always_online": true
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "channels:history",
+        "channels:read",
+        "chat:write",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "mpim:history",
+        "mpim:read",
+        "reactions:read",
+        "reactions:write",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "request_url": "https://YOUR_RAILWAY_URL.up.railway.app/slack/events",
+      "bot_events": [
+        "app_home_opened",
+        "app_mention",
+        "message.im"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": true,
+      "request_url": "https://YOUR_RAILWAY_URL.up.railway.app/slack/interactions"
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}
