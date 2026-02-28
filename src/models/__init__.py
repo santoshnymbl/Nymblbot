@@ -14,7 +14,10 @@ from .database import (
     check_reminder_sent_today,
     acknowledge_reminder,
     snooze_reminder,
-    get_stats
+    get_stats,
+    save_conversation_message,
+    get_conversation_history,
+    cleanup_old_conversations,
 )
 
 __all__ = [
@@ -33,5 +36,8 @@ __all__ = [
     "check_reminder_sent_today",
     "acknowledge_reminder",
     "snooze_reminder",
-    "get_stats"
+    "get_stats",
+    "save_conversation_message",
+    "get_conversation_history",
+    "cleanup_old_conversations",
 ]

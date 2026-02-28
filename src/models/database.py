@@ -95,10 +95,22 @@ async def init_database():
             )
         """)
         
+        # Conversation history table
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS conversation_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         # Create indexes
         await db.execute("CREATE INDEX IF NOT EXISTS idx_interactions_user ON interactions(user_id)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_reminder_log_user ON reminder_log(user_id)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_reminder_log_sent ON reminder_log(sent_at)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_conversation_user ON conversation_history(user_id)")
         
         await db.commit()
         logger.info("Database initialized successfully")
@@ -277,6 +289,59 @@ async def snooze_reminder(user_id: str, snooze_until: datetime):
             ORDER BY sent_at DESC 
             LIMIT 1
         """, (snooze_until, user_id))
+        await db.commit()
+
+
+# =============================================================================
+# CONVERSATION HISTORY QUERIES
+# =============================================================================
+
+async def save_conversation_message(user_id: str, role: str, content: str):
+    """Save a single conversation message"""
+    async with aiosqlite.connect(str(DB_PATH)) as db:
+        await db.execute("""
+            INSERT INTO conversation_history (user_id, role, content)
+            VALUES (?, ?, ?)
+        """, (user_id, role, content))
+        await db.commit()
+
+
+async def get_conversation_history(
+    user_id: str,
+    max_exchanges: int = 5,
+    max_age_hours: int = 24
+) -> List[dict]:
+    """
+    Get recent conversation history for a user.
+    Returns list of {"role": str, "content": str} dicts, oldest first.
+    Limited to max_exchanges (pairs of user+assistant messages).
+    Excludes messages older than max_age_hours.
+    """
+    max_messages = max_exchanges * 2
+
+    async with aiosqlite.connect(str(DB_PATH)) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT role, content FROM conversation_history
+            WHERE user_id = ?
+            AND created_at > datetime('now', ?)
+            ORDER BY id DESC
+            LIMIT ?
+        """, (user_id, f'-{max_age_hours} hours', max_messages)) as cursor:
+            rows = await cursor.fetchall()
+
+    # Reverse to get oldest first
+    rows = list(reversed(rows))
+    return [{"role": row["role"], "content": row["content"]} for row in rows]
+
+
+async def cleanup_old_conversations(max_age_hours: int = 48):
+    """Delete conversation messages older than max_age_hours"""
+    async with aiosqlite.connect(str(DB_PATH)) as db:
+        await db.execute("""
+            DELETE FROM conversation_history
+            WHERE created_at < datetime('now', ?)
+        """, (f'-{max_age_hours} hours',))
         await db.commit()
 
 
