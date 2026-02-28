@@ -25,6 +25,7 @@ from src.config import (
     get_help_message,
     settings
 )
+from src.ai.rag import rag_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,10 @@ async def handle_command(text: str, user_id: str, user_name: str) -> Optional[di
         time_input = match.group(1).strip()
         return await handle_set_reminder_time(user_id, user_name, time_input)
     
+    # Reload knowledge base
+    if text_lower in ["reload", "refresh", "reindex"]:
+        return handle_reload()
+
     # Not a command
     return None
 
@@ -212,3 +217,17 @@ async def handle_set_reminder_time(user_id: str, user_name: str, time_input: str
     return {
         "text": f"✅ Reminder time updated to *{format_time_12h(parsed_time)}*\n\nYou'll get reminders at this time on Fridays (in your timezone)."
     }
+
+
+def handle_reload() -> dict:
+    """Handle reload command - reindex knowledge base"""
+    try:
+        rag_pipeline.reload()
+        chunk_count = len(rag_pipeline.chunks)
+        return {
+            "text": f"Knowledge base reloaded. Indexed {chunk_count} chunks from {len(set(c.source for c in rag_pipeline.chunks))} documents."
+        }
+    except Exception as e:
+        return {
+            "text": f"Failed to reload knowledge base: {str(e)}"
+        }

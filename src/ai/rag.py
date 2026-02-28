@@ -72,7 +72,17 @@ class RAGPipeline:
         self._build_bm25_index()
         self._loaded = True
         logger.info("RAG pipeline ready (BM25 mode)!")
-    
+
+    def reload(self) -> None:
+        """Force reload of all documents and rebuild index"""
+        logger.info("Reloading RAG pipeline...")
+        self.chunks = []
+        self.bm25 = None
+        self.tokenized_chunks = []
+        self._loaded = False
+        self.load()
+        logger.info(f"RAG pipeline reloaded with {len(self.chunks)} chunks")
+
     def _chunk_document(self, source: str, content: str) -> List[DocumentChunk]:
         """Split document into searchable chunks with overlap and metadata"""
         chunks = []
