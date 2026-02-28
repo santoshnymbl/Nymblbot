@@ -257,8 +257,10 @@ class RAGPipeline:
 
     def search_multi(self, queries: List[str], top_k: int = None) -> List[Tuple[DocumentChunk, float]]:
         """
-        Search with multiple query variants and merge results.
-        Deduplicates by (source, chunk_id), keeping highest score.
+        Search with multiple query variants using original-first merge.
+        The original query (queries[0]) results come first since they best match
+        the user's actual intent. Expanded queries contribute additional unique
+        results that the original query may have missed.
         """
         if not self._loaded:
             self.load()
@@ -267,12 +269,20 @@ class RAGPipeline:
             return []
 
         top_k = top_k or settings.rerank_top_k
-        best_scores = {}  # (source, chunk_id) -> (chunk, score)
 
-        for query in queries:
+        # Original query results come first (direct intent match)
+        results = self.search(queries[0], top_k=top_k)
+
+        if len(queries) <= 1:
+            return results
+
+        # Track what we already have
+        seen = {(c.source, c.chunk_id) for c, _ in results}
+
+        # Add unique results from expanded queries
+        for query in queries[1:]:
             query_tokens = self._tokenize(query)
             bm25_scores = self.bm25.get_scores(query_tokens)
-
             top_indices = bm25_scores.argsort()[-settings.bm25_top_k:][::-1]
 
             for i in top_indices:
@@ -280,14 +290,11 @@ class RAGPipeline:
                     continue
                 chunk = self.chunks[i]
                 key = (chunk.source, chunk.chunk_id)
-                score = float(bm25_scores[i])
+                if key not in seen:
+                    seen.add(key)
+                    results.append((chunk, float(bm25_scores[i])))
 
-                if key not in best_scores or score > best_scores[key][1]:
-                    best_scores[key] = (chunk, score)
-
-        # Sort by score descending, take top_k
-        merged = sorted(best_scores.values(), key=lambda x: x[1], reverse=True)
-        return merged[:top_k]
+        return results[:top_k]
 
     def get_context_with_sources(self, query: str, queries: List[str] = None, max_chars: int = 3000) -> Tuple[str, List[dict]]:
         """
