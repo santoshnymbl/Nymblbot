@@ -244,7 +244,79 @@ class RAGPipeline:
         ]
         
         return results
-    
+
+    def search_multi(self, queries: List[str], top_k: int = None) -> List[Tuple[DocumentChunk, float]]:
+        """
+        Search with multiple query variants and merge results.
+        Deduplicates by (source, chunk_id), keeping highest score.
+        """
+        if not self._loaded:
+            self.load()
+
+        if not self.chunks or self.bm25 is None:
+            return []
+
+        top_k = top_k or settings.rerank_top_k
+        best_scores = {}  # (source, chunk_id) -> (chunk, score)
+
+        for query in queries:
+            query_tokens = self._tokenize(query)
+            bm25_scores = self.bm25.get_scores(query_tokens)
+
+            top_indices = bm25_scores.argsort()[-settings.bm25_top_k:][::-1]
+
+            for i in top_indices:
+                if bm25_scores[i] <= 0:
+                    continue
+                chunk = self.chunks[i]
+                key = (chunk.source, chunk.chunk_id)
+                score = float(bm25_scores[i])
+
+                if key not in best_scores or score > best_scores[key][1]:
+                    best_scores[key] = (chunk, score)
+
+        # Sort by score descending, take top_k
+        merged = sorted(best_scores.values(), key=lambda x: x[1], reverse=True)
+        return merged[:top_k]
+
+    def get_context_with_sources(self, query: str, queries: List[str] = None, max_chars: int = 3000) -> Tuple[str, List[dict]]:
+        """
+        Get formatted context string and source metadata for citations.
+        If queries (expanded) are provided, uses search_multi.
+        Returns: (context_text, sources_list)
+        """
+        if queries and len(queries) > 1:
+            results = self.search_multi(queries)
+        else:
+            results = self.search(query)
+
+        if not results:
+            return "No relevant information found in the knowledge base.", []
+
+        context_parts = []
+        sources = []
+        total_chars = 0
+
+        for chunk, score in results:
+            chunk_text = f"### {chunk.section}\n(Source: {chunk.source})\n\n{chunk.content}"
+
+            if total_chars + len(chunk_text) > max_chars:
+                break
+
+            context_parts.append(chunk_text)
+            total_chars += len(chunk_text)
+
+            # Collect unique sources for citation
+            source_entry = {
+                "source": chunk.source,
+                "section_path": chunk.section_path
+            }
+            if source_entry not in sources:
+                sources.append(source_entry)
+
+        context = "\n\n---\n\n".join(context_parts)
+        return context, sources
+
     def get_context(self, query: str, max_chars: int = 3000) -> str:
         """Get formatted context string for LLM prompt"""
         results = self.search(query)
