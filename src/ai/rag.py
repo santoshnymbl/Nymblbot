@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 class DocumentChunk:
     """A chunk of text from a document"""
     content: str
-    source: str
-    section: str
+    source: str          # filename (e.g., "nymbl_wiki.md")
+    section: str         # immediate section header
+    section_path: str    # full breadcrumb (e.g., "Policies > PTO Policy")
     chunk_id: int
 
 
@@ -73,79 +74,99 @@ class RAGPipeline:
         logger.info("RAG pipeline ready (BM25 mode)!")
     
     def _chunk_document(self, source: str, content: str) -> List[DocumentChunk]:
-        """Split document into searchable chunks by section"""
+        """Split document into searchable chunks with overlap and metadata"""
         chunks = []
-        
+        chunk_id = 0
+        overlap_size = 200  # characters of overlap between chunks
+
+        # Track header hierarchy for breadcrumb paths
+        header_stack = []  # list of (level, text) tuples
+
         # Split by headers (# ## ###)
         sections = re.split(r'\n(?=#{1,3}\s+)', content)
-        
-        chunk_id = 0
+
         for section in sections:
             section = section.strip()
             if not section:
                 continue
-            
-            # Extract header
+
+            # Extract header and update hierarchy
             header_match = re.match(r'^(#{1,3})\s+(.+?)(?:\n|$)', section)
             if header_match:
+                level = len(header_match.group(1))
                 header = header_match.group(2).strip()
                 body = section[header_match.end():].strip()
+
+                # Pop headers at same or deeper level
+                header_stack = [(l, t) for l, t in header_stack if l < level]
+                header_stack.append((level, header))
             else:
                 header = "General"
                 body = section
-            
+
+            # Build section path breadcrumb
+            section_path = " > ".join(t for _, t in header_stack)
+            if not section_path:
+                section_path = header
+
             # Skip empty sections
             if not body:
                 continue
-            
-            # Use larger chunk size (1500) to keep related content together
+
             max_chunk_size = 1500
-            
-            # If section is too long, split by paragraphs BUT keep header context
+
             if len(body) > max_chunk_size:
+                # Split by paragraphs with overlap
                 paragraphs = body.split("\n\n")
                 current_chunk = ""
-                
+                prev_chunk_tail = ""
+
                 for para in paragraphs:
                     para = para.strip()
                     if not para:
                         continue
-                    
+
                     if len(current_chunk) + len(para) < max_chunk_size:
                         current_chunk += para + "\n\n"
                     else:
                         if current_chunk.strip():
-                            # Include header context in chunk content for better matching
-                            chunk_content = f"{header}\n\n{current_chunk.strip()}"
+                            # Prepend overlap from previous chunk
+                            chunk_text = prev_chunk_tail + current_chunk.strip() if prev_chunk_tail else current_chunk.strip()
+                            chunk_content = f"{header}\n\n{chunk_text}"
                             chunks.append(DocumentChunk(
                                 content=chunk_content,
                                 source=source,
                                 section=header,
+                                section_path=section_path,
                                 chunk_id=chunk_id
                             ))
                             chunk_id += 1
+                            # Save tail for overlap
+                            prev_chunk_tail = current_chunk.strip()[-overlap_size:] + "\n\n"
                         current_chunk = para + "\n\n"
-                
+
                 if current_chunk.strip():
-                    chunk_content = f"{header}\n\n{current_chunk.strip()}"
+                    chunk_text = prev_chunk_tail + current_chunk.strip() if prev_chunk_tail else current_chunk.strip()
+                    chunk_content = f"{header}\n\n{chunk_text}"
                     chunks.append(DocumentChunk(
                         content=chunk_content,
                         source=source,
                         section=header,
+                        section_path=section_path,
                         chunk_id=chunk_id
                     ))
                     chunk_id += 1
             else:
-                # Include header in content for better search matching
                 chunk_content = f"{header}\n\n{body}"
                 chunks.append(DocumentChunk(
                     content=chunk_content,
                     source=source,
                     section=header,
+                    section_path=section_path,
                     chunk_id=chunk_id
                 ))
                 chunk_id += 1
-        
+
         return chunks
     
     def _build_bm25_index(self) -> None:
