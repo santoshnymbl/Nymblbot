@@ -17,7 +17,7 @@ from slack_bolt.adapter.fastapi.async_handler import AsyncSlackRequestHandler
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.config import settings
-from src.models import init_database, get_stats
+from src.models import init_database, get_stats, cleanup_old_conversations
 from src.ai import initialize_rag, ai_generator
 from src.slack import create_slack_app
 from src.scheduler import reminder_scheduler
@@ -47,7 +47,11 @@ async def lifespan(app: FastAPI):
     # Initialize database
     logger.info("Initializing database...")
     await init_database()
-    
+
+    # Cleanup old conversation history
+    await cleanup_old_conversations(max_age_hours=48)
+    logger.info("Cleaned up old conversation history")
+
     # Initialize RAG pipeline
     logger.info("Loading knowledge base...")
     initialize_rag()
