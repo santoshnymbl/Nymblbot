@@ -23,7 +23,7 @@ class TestGeneratorWithExpansion:
 
             mock_response = MagicMock()
             mock_response.content = [MagicMock(text="You get 15 days PTO.")]
-            gen.client.messages.create.return_value = mock_response
+            gen.client.messages.create = AsyncMock(return_value=mock_response)
 
             response, latency, sources = await gen.generate("What is PTO?", "TestUser", "U123")
 
@@ -52,7 +52,7 @@ class TestGeneratorWithExpansion:
 
             mock_response = MagicMock()
             mock_response.content = [MagicMock(text="You get 15 days PTO.")]
-            gen.client.messages.create.return_value = mock_response
+            gen.client.messages.create = AsyncMock(return_value=mock_response)
 
             response, latency, sources = await gen.generate("What is PTO?", "TestUser", "U123")
 

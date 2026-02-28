@@ -20,7 +20,7 @@ class AIGenerator:
     """Generate responses using Claude with RAG context"""
     
     def __init__(self):
-        self.client: Optional[anthropic.Anthropic] = None
+        self.client: Optional[anthropic.AsyncAnthropic] = None
         self._initialized = False
     
     def initialize(self):
@@ -32,7 +32,7 @@ class AIGenerator:
             logger.error("ANTHROPIC_API_KEY not set")
             return
         
-        self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self.client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
         self._initialized = True
         logger.info("AI Generator initialized with Claude")
     
@@ -97,7 +97,7 @@ Please answer based on the information above. Be direct and specific - if the an
             messages.append({"role": "user", "content": user_message})
 
             # Step 5: Call Claude
-            response = self.client.messages.create(
+            response = await self.client.messages.create(
                 model=settings.claude_model,
                 max_tokens=1024,
                 system=system,

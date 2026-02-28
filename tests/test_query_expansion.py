@@ -1,6 +1,6 @@
 """Tests for LLM-powered query expansion"""
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, AsyncMock, patch
 from src.ai.query_expansion import expand_query, parse_expansion_response
 
 
@@ -37,7 +37,7 @@ class TestExpandQuery:
         mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.content = [MagicMock(text="1. performance review\n2. feedback process")]
-        mock_client.messages.create.return_value = mock_response
+        mock_client.messages.create = AsyncMock(return_value=mock_response)
 
         result = await expand_query("How do I get promoted?", mock_client)
         assert "How do I get promoted?" in result

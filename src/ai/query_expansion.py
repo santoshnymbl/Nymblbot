@@ -39,7 +39,7 @@ def parse_expansion_response(response_text: str) -> List[str]:
     return queries
 
 
-async def expand_query(query: str, client: anthropic.Anthropic) -> List[str]:
+async def expand_query(query: str, client: anthropic.AsyncAnthropic) -> List[str]:
     """
     Expand a user query into multiple search variants using Claude.
     Always returns the original query as the first element.
@@ -48,7 +48,7 @@ async def expand_query(query: str, client: anthropic.Anthropic) -> List[str]:
     expanded = [query]
 
     try:
-        response = client.messages.create(
+        response = await client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=150,
             messages=[{
