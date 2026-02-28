@@ -184,9 +184,9 @@ class RAGPipeline:
         if not self.chunks:
             return
         
-        # Tokenize chunks (include section for better matching)
+        # Tokenize chunks (include section_path for better matching)
         self.tokenized_chunks = [
-            self._tokenize(f"{chunk.section} {chunk.content}")
+            self._tokenize(f"{chunk.section_path} {chunk.content}")
             for chunk in self.chunks
         ]
         
@@ -308,7 +308,7 @@ class RAGPipeline:
         total_chars = 0
 
         for chunk, score in results:
-            chunk_text = f"### {chunk.section}\n(Source: {chunk.source})\n\n{chunk.content}"
+            chunk_text = f"### {chunk.section_path}\n(Source: {chunk.source})\n\n{chunk.content}"
 
             if total_chars + len(chunk_text) > max_chars:
                 break
@@ -338,8 +338,8 @@ class RAGPipeline:
         total_chars = 0
         
         for chunk, score in results:
-            # Format with clear section header
-            chunk_text = f"""### {chunk.section}
+            # Format with clear section header (use full path for context)
+            chunk_text = f"""### {chunk.section_path}
 (Source: {chunk.source})
 
 {chunk.content}"""
