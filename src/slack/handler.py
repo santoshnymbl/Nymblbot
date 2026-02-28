@@ -11,9 +11,10 @@ from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
 
 from src.config import settings, get_welcome_message, get_help_message
-from src.models import get_or_create_user, log_interaction, get_stats
+from src.models import get_or_create_user, log_interaction, update_feedback, get_stats
 from src.ai import ai_generator, get_quick_response
 from src.slack.commands import handle_command
+from src.slack.formatting import format_ai_response
 
 logger = logging.getLogger(__name__)
 
@@ -189,7 +190,28 @@ def create_slack_app() -> AsyncApp:
     async def handle_mynos_button(ack):
         """Handle MyNos button click (just acknowledge, URL opens in browser)"""
         await ack()
-    
+
+    # =========================================================================
+    # ACTIONS: Feedback Buttons
+    # =========================================================================
+    @app.action(re.compile(r"^feedback_positive_\d+$"))
+    async def handle_positive_feedback(ack, body, say):
+        """Handle positive feedback button click"""
+        await ack()
+        action_id = body["actions"][0]["action_id"]
+        interaction_id = int(action_id.split("_")[-1])
+        await update_feedback(interaction_id, "positive")
+        await say(text="Thanks for the feedback! Glad I could help.")
+
+    @app.action(re.compile(r"^feedback_negative_\d+$"))
+    async def handle_negative_feedback(ack, body, say):
+        """Handle negative feedback button click"""
+        await ack()
+        action_id = body["actions"][0]["action_id"]
+        interaction_id = int(action_id.split("_")[-1])
+        await update_feedback(interaction_id, "negative")
+        await say(text="Thanks for the feedback. I'll try to do better!")
+
     return app
 
 
@@ -226,20 +248,21 @@ async def process_message(
     except:
         pass
     
-    # Generate AI response
-    response, latency_ms = await ai_generator.generate(text, user_name)
-    
+    # Generate AI response (now returns sources too)
+    response, latency_ms, sources = await ai_generator.generate(text, user_name, user_id)
+
     # Remove thinking reaction
     try:
         await client.reactions_remove(channel=channel, timestamp=message_ts, name="hourglass_flowing_sand")
     except:
         pass
-    
-    # Send response
-    await say(text=response, thread_ts=thread_ts)
-    
-    # Log interaction
-    await log_interaction(user_id, text, response, latency_ms)
+
+    # Log interaction and get ID for feedback buttons
+    interaction_id = await log_interaction(user_id, text, response, latency_ms)
+
+    # Format with Block Kit (citations + feedback buttons)
+    blocks = format_ai_response(response, sources, interaction_id)
+    await say(blocks=blocks, text=response, thread_ts=thread_ts)
 
 
 async def get_user_display_name(client: AsyncWebClient, user_id: str) -> str:

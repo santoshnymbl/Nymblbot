@@ -220,14 +220,15 @@ async def get_subscribed_users() -> List[UserPreference]:
 # INTERACTION LOG QUERIES  
 # =============================================================================
 
-async def log_interaction(user_id: str, query: str, response: str, latency_ms: int):
-    """Log an interaction"""
+async def log_interaction(user_id: str, query: str, response: str, latency_ms: int) -> int:
+    """Log an interaction and return the interaction ID"""
     async with aiosqlite.connect(str(DB_PATH)) as db:
-        await db.execute("""
+        cursor = await db.execute("""
             INSERT INTO interactions (user_id, query, response, latency_ms)
             VALUES (?, ?, ?, ?)
         """, (user_id, query, response, latency_ms))
         await db.commit()
+        return cursor.lastrowid
 
 
 async def update_feedback(interaction_id: int, feedback: str):
